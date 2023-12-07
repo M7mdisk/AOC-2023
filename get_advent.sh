@@ -1,4 +1,10 @@
-day=$(date +%-d)
+
+if [ -n "$1" ]; then
+  day=$1
+else
+  day=$(date +%-d)
+fi
+
 name="day${day}"
 token=$(cat .token)
 
