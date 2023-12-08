@@ -1,0 +1,117 @@
+.data		#the following is the data saved in memory
+inp: .asciz "LLR\n\nAAA = (BBB, BBB)\nBBB = (AAA, ZZZ)\nZZZ = (ZZZ, ZZZ)"
+path: .asciz "RL"
+map: .asciz "AAA = (BBB, BBB)\nAAB = (DDD, EEE)\nCCC = (ZZZ, GGG)\nDDD = (DDD, DDD)\nEEE = (EEE, EEE)\nGGG = (GGG, GGG)\nZZZ = (ZZZ, ZZZ)"
+test: .asciz "ZZZ"
+nl: .asciz "\n"
+gl: .asciz "\nGoing left!\n"
+gr: .asciz "\nGoing right!\n"
+
+
+ar:    .zero 640000        # 25-word argv array
+ad:     .word ar      # address of argv array
+
+# Each line is 17 long
+# Index in each line:
+# s0 Node:  0
+# s1 Left:  7
+# s2 Right: 12
+
+.text 		
+main:
+    la s11, map 
+    addi s0, zero, 0
+    la gp, ar
+    
+# Parse map
+loop: 
+    addi s1, s0, 7
+    addi s2, s0, 12
+
+    add  t0, s11, s0
+    lbu  t0, 0(t0)
+    beq  t0, zero, done 
+
+    add  t0, s11, s0
+    mv  a0, t0
+    jal hash
+    mv  t5,a0 # t5 has hashed source
+
+    add  t0, s11, s1
+    mv  a0, t0
+    jal hash
+    mv  t2,a0 # t2 has hashed Left
+
+    add  t0, s11, s2
+    mv  a0, t0
+    jal hash
+    mv  t3,a0 # t3 has hashed right
+    
+    slli t5,t5,2
+    add t4, gp, t5
+    sh t2, 0(t4)
+    sh t3, 2(t4)
+
+    addi s0,s0,17
+    j loop
+    
+done:
+    halt
+    # Go through path
+    la s11, path
+    li s1,0; #Current node
+    li s0,0 # i = 0
+    li t4,76 # the character L
+    li t5,2 # Length of string
+    li s9, 17575 # The TARGET
+    li s10, 0 # The answer
+
+loop_path:
+    add t0, s0, s11 # index in path
+    lbu  t0, 0(t0)
+    beq s1,s9,finally
+    slli s1,s1,2
+    add t6, gp, s1
+    bne t0, t4, is_r
+    # is L
+    lh s1,0(t6)
+    j else_done
+is_r:
+    lh s1,2(t6)
+else_done:
+    dout s1
+    addi s0,s0,1
+    blt s0, t5, dont_reset
+    li s0,0
+dont_reset:
+    addi s10,s10,1
+    j loop_path
+finally:
+    sout s10
+    halt
+
+
+# # Given a node return its value
+hash:
+    li t6,0
+    li t4, 26
+    li t3, 676
+
+    lbu t1, 0(a0)
+    addi t1, t1, -65
+    mul t1,t1,t4
+    add t6,t6,t1
+
+    addi a0, a0, 1
+    lbu t1, 0(a0)
+    addi t1, t1, -65
+    mul t1,t1,t3
+    add t6,t6,t1
+
+    addi a0, a0, 1
+    lbu t1, 0(a0)
+    addi t1, t1, -65
+    add t6,t6,t1
+
+    add a0, zero, t6
+    jr ra   
